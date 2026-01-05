@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Test Camara</title>
+  <script src="https://cdn.jsdelivr.net/npm/p5@1.9.3/lib/p5.min.js"></script>
+</head>
+<body style="margin:0; overflow:hidden;">
+
+<script>
+
+let cam;
+let txt = "Elegant Evolution Sound ";
+let angle = 0;
+
+function setup() {
+  createCanvas(windowWidth, windowHeight);
+  pixelDensity(1);
+  textFont('monospace');
+  textSize(32);
+
+  cam = createCapture({
+    video: { facingMode: "environment" },
+    audio: false
+  });
+  cam.size(640, 480);
+  cam.hide();
+}
+
+function draw() {
+  background(0);
+
+  // --- TEXTO CIRCULAR ORIGINAL (ROJO + GIRANDO) ---
+  push();
+  translate(width / 2, height / 2);
+  fill(255, 0, 0);
+  noStroke();
+
+  let radius = min(width, height) * 0.35;
+  angle += 0.005;
+
+  let step = TWO_PI / txt.length;
+
+  for (let i = 0; i < txt.length; i++) {
+    let a = angle + i * step;
+    let x = cos(a) * radius;
+    let y = sin(a) * radius;
+
+    push();
+    translate(x, y);
+    rotate(a + HALF_PI);
+    text(txt[i], 0, 0);
+    pop();
+  }
+  pop();
+
+  // --- SILUETAS POSTERIZADAS + GLITCH SUAVE ---
+  cam.loadPixels();
+  noStroke();
+  fill(255);
+
+  let levels = 3;          // posterización leve
+  let glitchAmount = 10;   // glitch sutil
+
+  for (let y = 0; y < cam.height; y += 2) {
+
+    let gx = random() < 0.05 ? random(-glitchAmount, glitchAmount) : 0;
+
+    for (let x = 0; x < cam.width; x += 2) {
+      let i = (x + y * cam.width) * 4;
+      let r = cam.pixels[i];
+      let g = cam.pixels[i + 1];
+      let b = cam.pixels[i + 2];
+
+      let brightness = (r + g + b) / 3;
+
+      // posterización
+      let stepB = 255 / levels;
+      brightness = floor(brightness / stepB) * stepB;
+
+      if (brightness < 120) {
+        let sx = map(x, 0, cam.width, 0, width) + gx;
+        let sy = map(y, 0, cam.height, 0, height);
+        rect(sx, sy, 2, 2);
+      }
+    }
+  }
+}
+
+function windowResized() {
+  resizeCanvas(windowWidth, windowHeight);
+}
+</script>
+
+</body>
+</html>
