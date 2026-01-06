@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Cámara Posterizada con Zoom</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<script src="https://cdn.jsdelivr.net/npm/p5@1.7.0/lib/p5.min.js"></script>
+<style>
+  body, html { margin:0; padding:0; overflow:hidden; background:black; }
+  canvas { display:block; }
+</style>
+</head>
+<body>
+<script>
+let video;
+let palette;
+let zoom = 1;
+let lastDist = 0;
+
+function setup() {
+  createCanvas(windowWidth, windowHeight);
+  pixelDensity(1);
+
+  // Cámara frontal o trasera, audio activado
+  let constraints = { 
+    video: { facingMode: "environment" }, 
+    audio: true 
+  };
+  video = createCapture(constraints);
+  video.size(width, height);
+  video.hide();
+
+  // Paleta posterizada
+  palette = [
+    color(233, 116, 98),   // Salmón oscuro
+    color(0, 0, 255),      // Azul radiante
+    color(175, 238, 238),  // Celeste pastel
+    color(50, 50, 50)      // Gris oscuro
+  ];
+}
+
+function draw() {
+  background(0);
+  video.loadPixels();
+  loadPixels();
+
+  let w = video.width / zoom;
+  let h = video.height / zoom;
+  let xOff = (video.width - w)/2;
+  let yOff = (video.height - h)/2;
+
+  for(let y=0; y<height; y++){
+    for(let x=0; x<width; x++){
+      let vx = int(xOff + x * w / width);
+      let vy = int(yOff + y * h / height);
+      let i = (vx + vy * video.width) * 4;
+
+      let r = video.pixels[i];
+      let g = video.pixels[i+1];
+      let b = video.pixels[i+2];
+
+      let gray = (r+g+b)/3;
+      let level = gray < 64 ? 0 : gray < 128 ? 1 : gray < 192 ? 2 : 3;
+      let c = palette[level];
+
+      let idx = (x + y*width)*4;
+      pixels[idx] = red(c);
+      pixels[idx+1] = green(c);
+      pixels[idx+2] = blue(c);
+      pixels[idx+3] = 255;
+    }
+  }
+
+  updatePixels();
+}
+
+// Detectar pellizco para zoom
+function touchMoved() {
+  if(touches.length == 2){
+    let d = dist(touches[0].x, touches[0].y, touches[1].x, touches[1].y);
+    if(lastDist > 0){
+      let diff = d - lastDist;
+      zoom *= (1 + diff/200);  // ajustar sensibilidad
+      zoom = constrain(zoom, 1, 5); // límites de zoom
+    }
+    lastDist = d;
+  }
+  return false; // evitar scroll
+}
+
+function touchEnded() {
+  if(touches.length < 2){
+    lastDist = 0;
+  }
+}
+
+function windowResized() {
+  resizeCanvas(windowWidth, windowHeight);
+  video.size(windowWidth, windowHeight);
+}
+</script>
+</body>
+</html>
