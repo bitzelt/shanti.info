@@ -1,0 +1,89 @@
+<script>
+let video;
+let buffer;
+let palette;
+let zoom = 1;
+let lastDist = 0;
+
+const PROC_W = 320;
+const PROC_H = 240;
+
+function setup() {
+  createCanvas(windowWidth, windowHeight);
+  pixelDensity(1);
+
+  video = createCapture({
+    video: { facingMode: "environment" },
+    audio: false
+  });
+  video.size(640, 480); // calidad real
+  video.hide();
+
+  buffer = createGraphics(PROC_W, PROC_H);
+  buffer.pixelDensity(1);
+
+  palette = [
+    color(233,116,98),    // salmón oscuro
+    color(0,0,255),       // azul radiante
+    color(175,238,238),   // celeste pastel
+    color(50,50,50)       // gris
+  ];
+}
+
+function draw() {
+  background(0);
+
+  buffer.image(video, 0, 0, PROC_W, PROC_H);
+  buffer.loadPixels();
+
+  for (let i = 0; i < buffer.pixels.length; i += 4) {
+    let r = buffer.pixels[i];
+    let g = buffer.pixels[i+1];
+    let b = buffer.pixels[i+2];
+
+    let gray = (r + g + b) / 3;
+    let level = gray < 64 ? 0 : gray < 128 ? 1 : gray < 192 ? 2 : 3;
+    let c = palette[level];
+
+    buffer.pixels[i]   = red(c);
+    buffer.pixels[i+1] = green(c);
+    buffer.pixels[i+2] = blue(c);
+  }
+
+  buffer.updatePixels();
+
+  let w = width * zoom;
+  let h = height * zoom;
+  image(
+    buffer,
+    (width - w)/2,
+    (height - h)/2,
+    w,
+    h
+  );
+}
+
+// Zoom por pellizco
+function touchMoved() {
+  if (touches.length === 2) {
+    let d = dist(
+      touches[0].x, touches[0].y,
+      touches[1].x, touches[1].y
+    );
+    if (lastDist > 0) {
+      zoom *= 1 + (d - lastDist) / 300;
+      zoom = constrain(zoom, 1, 4);
+    }
+    lastDist = d;
+  }
+  return false;
+}
+
+function touchEnded() {
+  if (touches.length < 2) lastDist = 0;
+}
+
+function windowResized() {
+  resizeCanvas(windowWidth, windowHeight);
+}
+</script>
